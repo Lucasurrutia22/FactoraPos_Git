@@ -1,0 +1,151 @@
+╔════════════════════════════════════════════════════════════════════════╗
+║          INSTRUCCIONES PARA SUBIR A GITHUB - Lucasurrutia22           ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+✅ CONFIGURACIÓN REALIZADA
+
+Tu repositorio ya está configurado con:
+- Usuario: Lucasurrutia22
+- Repositorio: FactoraPos
+- URL: https://github.com/Lucasurrutia22/FactoraPos.git
+- Rama: main
+
+═══════════════════════════════════════════════════════════════════════════
+
+📋 PASOS PARA COMPLETAR LA SUBIDA
+
+1️⃣ CREAR REPOSITORIO EN GITHUB
+
+   Abre: https://github.com/new
+   
+   Configuración:
+   • Repository name: FactoraPos
+   • Description: Sistema integrado de gestión (POS)
+   • Visibility: Público o Privado (tu elección)
+   • NO inicialices con README, .gitignore ni LICENSE
+   
+   Haz clic en "Create repository"
+
+2️⃣ AUTENTICAR CON GITHUB
+
+   Tienes dos opciones:
+
+   OPCIÓN A: USAR TOKEN PERSONAL (RECOMENDADO)
+   ────────────────────────────────────────────────
+   
+   a) Ve a: https://github.com/settings/tokens
+   b) Haz clic en "Generate new token" → "Generate new token (classic)"
+   c) Configuración del token:
+      • Nombre: FactoraPos-Git
+      • Expiration: 90 días (o lo que prefieras)
+      • Scopes: Marca "repo"
+   d) Copia el token
+   e) Usa el token como contraseña en la siguiente sección
+
+   OPCIÓN B: USAR SSH (ALTERNATIVA)
+   ────────────────────────────────────────────────
+   
+   Si ya tienes SSH configurado, omite esto.
+   Si no:
+   
+   a) PowerShell (como administrador):
+      ssh-keygen -t ed25519 -C "tu-email@github.com"
+   
+   b) Presiona Enter en todas las opciones
+   
+   c) Agrega la clave pública a GitHub:
+      • Ve a: https://github.com/settings/keys
+      • "New SSH key"
+      • Copia el contenido de: ~/.ssh/id_ed25519.pub
+      • Pega en GitHub y guarda
+
+3️⃣ HACER PUSH DEL REPOSITORIO
+
+   Ejecuta en PowerShell en la carpeta del proyecto:
+
+   ╔──────────────────────────────────────────────────╗
+   ║ cd C:\Users\lucas\Desktop\FactoraPos_Git        ║
+   ║ git push -u origin main                          ║
+   ╚──────────────────────────────────────────────────╝
+
+   Te pedirá credenciales:
+   • Username: Lucasurrutia22
+   • Password: El token personal que generaste (opción A)
+              o automático si usas SSH (opción B)
+
+═══════════════════════════════════════════════════════════════════════════
+
+✨ DESPUÉS DE LA SUBIDA
+
+Una vez que hagas push exitoso:
+
+✅ Tu repositorio estará en:
+   https://github.com/Lucasurrutia22/FactoraPos
+
+✅ Podrás:
+   • Compartir el código con otros desarrolladores
+   • Usar GitHub Pages para documentación
+   • Activar GitHub Actions para CI/CD
+   • Colaborar con otros
+
+═══════════════════════════════════════════════════════════════════════════
+
+📝 COMANDOS PARA RECORDAR
+
+Después de la primera subida, para hacer cambios:
+
+   git add .
+   git commit -m "Descripción del cambio"
+   git push
+
+Ver el historial:
+   git log --oneline
+
+Crear una rama nueva:
+   git checkout -b nueva-rama
+   git push -u origin nueva-rama
+
+═══════════════════════════════════════════════════════════════════════════
+
+⚠️ IMPORTANTE
+
+• No hagas push directamente en la rama main
+• Usa ramas para desarrollar nuevas features
+• Haz pull requests para fusionar cambios
+• Revisa los cambios antes de hacer push
+
+═══════════════════════════════════════════════════════════════════════════
+
+🆘 SI ALGO SALE MAL
+
+Error de autenticación:
+   → Verifica que el token es correcto
+   → Regenera un nuevo token si es necesario
+
+Error de rama:
+   → git branch -M main  (renombrar a main)
+
+Deshacer el último push:
+   → git reset --hard HEAD~1
+   → git push -f origin main
+
+═══════════════════════════════════════════════════════════════════════════
+
+✅ Estado Actual del Repositorio Local
+
+Ubicación: C:\Users\lucas\Desktop\FactoraPos_Git
+Rama: main
+Commits: 3
+Archivos: 157
+
+Remote configurado:
+   origin → https://github.com/Lucasurrutia22/FactoraPos.git
+
+═══════════════════════════════════════════════════════════════════════════
+
+🚀 ¡LISTO PARA HACER PUSH!
+
+Sigue los pasos anteriores y tu código estará en GitHub.
+
+Fecha: 16 de Noviembre de 2025
+Usuario: Lucasurrutia22

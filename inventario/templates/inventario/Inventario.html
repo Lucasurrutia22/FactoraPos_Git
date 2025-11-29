@@ -1,0 +1,486 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>FACTORA POS - Inventario</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'css/shared.css' %}">
+    <link rel="stylesheet" href="{% static 'css/Inventario.css' %}">
+    
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --accent: #667eea;
+        }
+
+        body.dark-mode {
+            --bg-primary: #1e293b;
+            --bg-secondary: #0f172a;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --border-color: #334155;
+            --accent: #818cf8;
+        }
+
+        * {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        body {
+            background-color: var(--bg-primary) !important;
+            color: var(--text-primary) !important;
+        }
+
+        .sidebar {
+            background-color: var(--bg-secondary) !important;
+            border-right: 1px solid var(--border-color) !important;
+        }
+
+        .card, .table-container {
+            background-color: var(--bg-secondary) !important;
+            border: 1px solid var(--border-color) !important;
+            color: var(--text-primary) !important;
+        }
+
+        input, textarea, select {
+            background-color: var(--bg-primary) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-color) !important;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--text-primary) !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="{% url 'dashboard' %}" class="logo">FACTORA POS</a>
+            <div class="logo-subtitle">Sistema Integrado de Gestión</div>
+        </div>
+
+        <div class="sidebar-menu">
+
+            <a href="{% url 'dashboard' %}" class="menu-item">
+                <i>📊</i> Dashboard
+            </a>
+            
+            <div class="menu-section">Operaciones</div>
+
+            <a href="{% url 'punto_venta' %}" class="menu-item">
+                <i>🛒</i> Punto de Venta
+            </a>
+
+            <a href="{% url 'inventario' %}" class="menu-item active">
+                <i>📦</i> Inventario
+            </a>
+
+            <a href="{% url 'clientes' %}" class="menu-item">
+                <i>👥</i> Clientes
+            </a>
+
+            <a href="{% url 'proveedores' %}" class="menu-item">
+                <i>🏭</i> Proveedores
+            </a>
+
+            <div class="menu-section">Gestión</div>
+
+            <a href="{% url 'reportes' %}" class="menu-item">
+                <i>📈</i> Reportes
+            </a>
+
+            <a href="{% url 'rma' %}" class="menu-item">
+                <i>🔧</i> RMA / Garantías
+            </a>
+
+            <a href="{% url 'movimientos' %}" class="menu-item">
+                <i>📋</i> Movimientos
+            </a>
+
+            <div class="menu-section">Configuración</div>
+
+            <a href="{% url 'usuarios' %}" class="menu-item">
+                <i>👤</i> Usuarios
+            </a>
+
+            <a href="{% url 'config' %}" class="menu-item">
+                <i>⚙️</i> Configuración
+            </a>
+
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="search-box">
+            <input type="text" id="globalSearch" placeholder="Buscar productos por nombre, SKU o código de serie...">
+        </div>
+
+        <div class="header-actions">
+            <div class="user-profile-wrapper">
+                <div class="user-profile" onclick="toggleProfileMenu()">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div>
+                        <div id="welcomeText" style="font-weight: 600; font-size: 14px;">Admin Usuario</div>
+                        <div id="roleText" style="font-size: 12px; color: #64748b;">Administrador</div>
+                    </div>
+                </div>
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="dropdown-header">
+                        <div class="dropdown-avatar">A</div>
+                        <div class="dropdown-info">
+                            <div class="dropdown-name">Admin Usuario</div>
+                            <div class="dropdown-role">Administrador</div>
+                        </div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a href="{% url 'profile' %}" class="dropdown-item">
+                        <span>👤</span> Mi Perfil
+                    </a>
+                    <a href="{% url 'config' %}" class="dropdown-item">
+                        <span>⚙️</span> Configuración
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" class="dropdown-item logout" onclick="handleLogout(event)">
+                        <span>🚪</span> Cerrar Sesión
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="page-header">
+            <div>
+                <div class="page-title">Gestión de Inventario</div>
+                <div class="page-subtitle">Administra productos, stock y números de serie</div>
+            </div>
+            <button class="btn-primary" onclick="openModal(false)">
+                ➕ Nuevo Producto
+            </button>
+        </div>
+
+        <!-- Mini Stats -->
+        <div class="stats-mini">
+            <div class="stat-mini-card primary">
+                <div class="stat-mini-info">
+                    <h4 id="totalProducts">156</h4>
+                    <p>Total Productos</p>
+                </div>
+                <div class="stat-mini-icon">📦</div>
+            </div>
+
+            <div class="stat-mini-card success">
+                <div class="stat-mini-info">
+                    <h4>$45.2M</h4>
+                    <p>Valor Inventario</p>
+                </div>
+                <div class="stat-mini-icon">💰</div>
+            </div>
+
+            <div class="stat-mini-card warning">
+                <div class="stat-mini-info">
+                    <h4>23</h4>
+                    <p>Stock Bajo</p>
+                </div>
+                <div class="stat-mini-icon">⚠️</div>
+            </div>
+
+            <div class="stat-mini-card danger">
+                <div class="stat-mini-info">
+                    <h4>5</h4>
+                    <p>Agotados</p>
+                </div>
+                <div class="stat-mini-icon">🚫</div>
+            </div>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+            <div class="search-filter">
+                <input type="text" id="searchProducts" placeholder="🔍 Buscar productos...">
+            </div>
+
+            <div class="filter-group">
+                <button class="btn-filter active" data-filter="all">Todos</button>
+                <button class="btn-filter" data-filter="disponible">Disponibles</button>
+                <button class="btn-filter" data-filter="bajo">Stock Bajo</button>
+                <button class="btn-filter" data-filter="agotado">Agotados</button>
+            </div>
+
+            <select class="btn-filter" id="categoryFilter">
+                <option value="">Todas las categorías</option>
+                <option value="notebooks">Notebooks</option>
+                <option value="perifericos">Periféricos</option>
+                <option value="monitores">Monitores</option>
+                <option value="almacenamiento">Almacenamiento</option>
+                <option value="componentes">Componentes</option>
+            </select>
+        </div>
+
+        <!-- Products Table -->
+        <div class="products-container">
+            <div class="products-header">
+                <h3>Listado de Productos (<span id="productCount">0</span>)</h3>
+                <div class="view-toggle">
+                    <button class="view-btn active">📋</button>
+                    <button class="view-btn">🎴</button>
+                </div>
+            </div>
+
+            <table class="products-table">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>SKU</th>
+                        <th>Categoría</th>
+                        <th>Precio</th>
+                        <th>Stock</th>
+                        <th>Estado</th>
+                        <th>Serie</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="productsTableBody">
+                    <!-- Products will be inserted here -->
+                </tbody>
+            </table>
+
+            <div class="pagination">
+                <button id="prevPage">← Anterior</button>
+                <span id="pageInfo">Página 1 de 1</span>
+                <button id="nextPage">Siguiente →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Add/Edit Product -->
+    <div class="modal-overlay" id="productModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 id="modalTitle">Nuevo Producto</h3>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+
+            <form id="productForm" onsubmit="handleProductSubmit(event)">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label>Nombre del Producto *</label>
+                            <input type="text" id="productName" name="productName" required placeholder="Ej: Notebook Asus ROG Strix G15">
+                        </div>
+
+                        <div class="form-group">
+                            <label>SKU *</label>
+                            <input type="text" id="productSKU" name="productSKU" required placeholder="Ej: NB-ASUS-001">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Categoría *</label>
+                            <select id="productCategory" name="productCategory" required>
+                                <option value="">Seleccionar...</option>
+                                <option value="notebooks">Notebooks</option>
+                                <option value="perifericos">Periféricos</option>
+                                <option value="monitores">Monitores</option>
+                                <option value="almacenamiento">Almacenamiento</option>
+                                <option value="componentes">Componentes</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Marca *</label>
+                            <input type="text" id="productBrand" name="productBrand" required placeholder="Ej: Asus">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Precio de Compra ($) *</label>
+                            <input type="number" id="productCostPrice" name="productCostPrice" required placeholder="0" min="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Precio de Venta ($) *</label>
+                            <input type="number" id="productSalePrice" name="productSalePrice" required placeholder="0" min="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Stock Actual</label>
+                            <input type="number" id="productStock" name="productStock" value="0" min="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Stock Mínimo</label>
+                            <input type="number" id="productMinStock" name="productMinStock" value="5" min="0">
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label>Descripción</label>
+                            <textarea id="productDescription" name="productDescription" placeholder="Descripción detallada del producto..."></textarea>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="requiresSerial" name="requiresSerial">
+                                <label style="margin: 0;">Este producto requiere número de serie (trazabilidad)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar Producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- User Profile Modal -->
+    <div class="modal-overlay" id="userProfileModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Mi Perfil</h3>
+                <button class="modal-close" onclick="closeModalById('userProfileModal')">✕</button>
+            </div>
+            <form id="userProfileForm" onsubmit="saveUserProfile(event)">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label>Nombre de Usuario</label>
+                            <input type="text" id="profileUsername" name="username" required />
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="profileEmail" name="email" />
+                        </div>
+                        <div class="form-group">
+                            <label>Rol</label>
+                            <select id="profileRole" name="role">
+                                <option value="Administrador">Administrador</option>
+                                <option value="Usuario">Usuario</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModalById('userProfileModal')">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Configuración</h3>
+                <button class="modal-close" onclick="closeModalById('settingsModal')">✕</button>
+            </div>
+            <form id="settingsForm" onsubmit="saveSettings(event)">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Tema</label>
+                            <select id="settingTheme" name="theme">
+                                <option value="light">Claro</option>
+                                <option value="dark">Oscuro</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Notificaciones</label>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="settingNotifications" name="notifications" />
+                                <label for="settingNotifications">Habilitar notificaciones</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModalById('settingsModal')">Cancelar</button>
+                    <button type="submit" class="btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JS Scripts convertidos a Django -->
+    <script>
+        // Función global para cambiar tema
+        function setTheme(theme) {
+            console.log('Cambiando tema a:', theme);
+            if (theme === 'dark') {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('theme', 'dark');
+                const darkBtn = document.getElementById('themeDark');
+                const lightBtn = document.getElementById('themeLight');
+                if (darkBtn) {
+                    darkBtn.classList.add('active');
+                }
+                if (lightBtn) {
+                    lightBtn.classList.remove('active');
+                }
+            } else {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('theme', 'light');
+                const darkBtn = document.getElementById('themeDark');
+                const lightBtn = document.getElementById('themeLight');
+                if (lightBtn) {
+                    lightBtn.classList.add('active');
+                }
+                if (darkBtn) {
+                    darkBtn.classList.remove('active');
+                }
+            }
+        }
+
+        // Cargar tema guardado al iniciar
+        function loadSavedTheme() {
+            const theme = localStorage.getItem('theme') || 'light';
+            setTheme(theme);
+        }
+        
+        // Ejecutar cuando carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSavedTheme();
+        });
+        
+        // También ejecutar inmediatamente en caso de que el DOM ya esté listo
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadSavedTheme);
+        } else {
+            loadSavedTheme();
+        }
+
+        // Función global de logout
+        function handleLogout(event) {
+            if (event) event.preventDefault();
+            if (confirm('¿Está seguro que desea cerrar sesión?')) {
+                try { sessionStorage.clear(); } catch(e){}
+                try { localStorage.removeItem('factora_user_remember'); } catch(e){}
+                try { localStorage.removeItem('userToken'); } catch(e){}
+                try { localStorage.removeItem('userData'); } catch(e){}
+                try { sessionStorage.removeItem('factora_user'); } catch(e){}
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 100);
+            }
+        }
+    </script>
+    <script src="{% static 'js/auth.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'js/header-user.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'js/notifications.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'js/Inventario.js' %}?v={% now 'U' %}"></script>
+
+</body>
+</html>
+

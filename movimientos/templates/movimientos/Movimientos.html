@@ -1,0 +1,378 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>FACTORA POS - Movimientos</title>
+
+    <link rel="stylesheet" href="{% static 'css/shared.css' %}">
+    <link rel="stylesheet" href="{% static 'css/Movimientos.css' %}">
+    
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --accent: #667eea;
+        }
+
+        body.dark-mode {
+            --bg-primary: #1e293b;
+            --bg-secondary: #0f172a;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --border-color: #334155;
+            --accent: #818cf8;
+        }
+
+        * {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        body {
+            background-color: var(--bg-primary) !important;
+            color: var(--text-primary) !important;
+        }
+
+        .sidebar {
+            background-color: var(--bg-secondary) !important;
+            border-right: 1px solid var(--border-color) !important;
+        }
+
+        .card, .table-container {
+            background-color: var(--bg-secondary) !important;
+            border: 1px solid var(--border-color) !important;
+            color: var(--text-primary) !important;
+        }
+
+        input, textarea, select {
+            background-color: var(--bg-primary) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-color) !important;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--text-primary) !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="{% url 'dashboard' %}" class="logo">FACTORA POS</a>
+            <div class="logo-subtitle">Sistema Integrado de Gestión</div>
+        </div>
+
+        <div class="sidebar-menu">
+
+            <a href="{% url 'dashboard' %}" class="menu-item">
+                <i>📊</i> Dashboard
+            </a>
+
+            <div class="menu-section">Operaciones</div>
+
+            <a href="{% url 'punto_venta' %}" class="menu-item">
+                <i>🛒</i> Punto de Venta
+            </a>
+
+            <a href="{% url 'inventario' %}" class="menu-item">
+                <i>📦</i> Inventario
+            </a>
+
+            <a href="{% url 'clientes' %}" class="menu-item">
+                <i>👥</i> Clientes
+            </a>
+
+            <a href="{% url 'proveedores' %}" class="menu-item">
+                <i>🏭</i> Proveedores
+            </a>
+
+            <div class="menu-section">Gestión</div>
+
+            <a href="{% url 'reportes' %}" class="menu-item">
+                <i>📈</i> Reportes
+            </a>
+
+            <a href="{% url 'rma' %}" class="menu-item">
+                <i>🔧</i> RMA / Garantías
+            </a>
+
+            <a href="{% url 'movimientos' %}" class="menu-item active">
+                <i>📋</i> Movimientos
+            </a>
+
+            <div class="menu-section">Configuración</div>
+
+            <a href="{% url 'usuarios' %}" class="menu-item">
+                <i>👤</i> Usuarios
+            </a>
+
+            <a href="{% url 'config' %}" class="menu-item">
+                <i>⚙️</i> Configuración
+            </a>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="search-box">
+            <input type="text" placeholder="Buscar productos, clientes, facturas...">
+        </div>
+
+        <div class="header-actions">
+            <div class="user-profile-wrapper">
+                <div class="user-profile" onclick="toggleProfileMenu()">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div>
+                        <div id="welcomeText" style="font-weight: 600; font-size: 14px;">Admin Usuario</div>
+                        <div id="roleText" style="font-size: 12px; color: #64748b;">Administrador</div>
+                    </div>
+                </div>
+
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="dropdown-header">
+                        <div class="dropdown-avatar">A</div>
+                        <div class="dropdown-info">
+                            <div class="dropdown-name">Admin Usuario</div>
+                            <div class="dropdown-role">Administrador</div>
+                        </div>
+                    </div>
+
+                    <div class="dropdown-divider"></div>
+                    <a href="{% url 'profile' %}" class="dropdown-item">
+                        <span>👤</span> Mi Perfil
+                    </a>
+
+                    <a href="{% url 'config' %}" class="dropdown-item">
+                        <span>⚙️</span> Configuración
+                    </a>
+
+                    <div class="dropdown-divider"></div>
+                    <a href="#" class="dropdown-item logout" onclick="handleLogout(event)">
+                        <span>🚪</span> Cerrar Sesión
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main -->
+    <div class="main-content">
+        <div class="page-title">Movimientos</div>
+        <div class="page-subtitle">Registro de todas las transacciones del sistema</div>
+
+        <!-- Filters -->
+        <div class="table-card" style="margin-bottom:20px;">
+            <div class="chart-header" style="margin-bottom:20px;">
+                <div class="chart-title">Filtros</div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:15px;">
+                <div>
+                    <label>Tipo de Movimiento</label>
+                    <select id="filterType" onchange="applyFilters()">
+                        <option value="">-- Todos --</option>
+                        <option value="Venta">Venta</option>
+                        <option value="Compra">Compra</option>
+                        <option value="Inventario">Inventario</option>
+                        <option value="RMA">RMA</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label>Desde</label>
+                    <input type="date" id="filterFromDate" onchange="applyFilters()">
+                </div>
+
+                <div>
+                    <label>Hasta</label>
+                    <input type="date" id="filterToDate" onchange="applyFilters()">
+                </div>
+
+                <div style="display:flex;align-items:flex-end;">
+                    <button class="btn-secondary" onclick="clearFilters()">Limpiar Filtros</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-card">
+            <div class="chart-header" style="margin-bottom:20px;">
+                <div class="chart-title">Registro de Movimientos</div>
+
+                <div style="display:flex;gap:10px;">
+                    <button class="btn-primary btn-small" onclick="openAddMovementModal()">+ Agregar Movimiento</button>
+                    <button class="btn-secondary btn-small" onclick="exportMovements()">Exportar CSV</button>
+                </div>
+            </div>
+
+            <table class="table-custom">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Tipo</th>
+                        <th>Referencia ID</th>
+                        <th>Descripción</th>
+                        <th>Cantidad</th>
+                        <th>Valor</th>
+                        <th>Usuario</th>
+                    </tr>
+                </thead>
+                <tbody id="movementsTableBody">
+                    <tr>
+                        <td colspan="8" style="text-align:center;color:#64748b;">
+                            Cargando movimientos...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add Movement Modal -->
+    <div id="addMovementModal" class="modal-overlay" style="display:none;">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Agregar Movimiento</h3>
+                <button class="modal-close" onclick="closeAddMovementModal()">✕</button>
+            </div>
+
+            <div class="modal-body">
+                <form id="addMovementForm">
+                    <div class="form-grid grid-2">
+
+                        <div class="form-group">
+                            <label>Fecha</label>
+                            <input type="date" id="mv_date" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Hora</label>
+                            <input type="time" id="mv_time" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Tipo</label>
+                            <select id="mv_type" required>
+                                <option value="">-- Seleccionar --</option>
+                                <option value="Venta">Venta</option>
+                                <option value="Compra">Compra</option>
+                                <option value="Inventario">Inventario</option>
+                                <option value="RMA">RMA</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>ID Referencia</label>
+                            <input type="text" id="mv_ref" placeholder="Opcional">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Descripción</label>
+                            <input type="text" id="mv_desc" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Cantidad</label>
+                            <input type="number" id="mv_qty" value="1" min="0">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Valor</label>
+                            <input type="number" id="mv_value" value="0" min="0" step="0.01">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Usuario</label>
+                            <input type="text" id="mv_user" value="Sistema">
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeAddMovementModal()">Cancelar</button>
+                <button class="btn-primary" onclick="submitAddMovement()">Agregar Movimiento</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS -->
+    <script>
+        // Función global para cambiar tema
+        function setTheme(theme) {
+            console.log('Cambiando tema a:', theme);
+            if (theme === 'dark') {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('theme', 'dark');
+                const darkBtn = document.getElementById('themeDark');
+                const lightBtn = document.getElementById('themeLight');
+                if (darkBtn) {
+                    darkBtn.classList.add('active');
+                }
+                if (lightBtn) {
+                    lightBtn.classList.remove('active');
+                }
+            } else {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('theme', 'light');
+                const darkBtn = document.getElementById('themeDark');
+                const lightBtn = document.getElementById('themeLight');
+                if (lightBtn) {
+                    lightBtn.classList.add('active');
+                }
+                if (darkBtn) {
+                    darkBtn.classList.remove('active');
+                }
+            }
+        }
+
+        // Cargar tema guardado al iniciar
+        function loadSavedTheme() {
+            const theme = localStorage.getItem('theme') || 'light';
+            setTheme(theme);
+        }
+        
+        // Ejecutar cuando carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSavedTheme();
+        });
+        
+        // También ejecutar inmediatamente en caso de que el DOM ya esté listo
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadSavedTheme);
+        } else {
+            loadSavedTheme();
+        }
+
+        // Función global de logout
+        function handleLogout(event) {
+            if (event) event.preventDefault();
+            if (confirm('¿Está seguro que desea cerrar sesión?')) {
+                try { sessionStorage.clear(); } catch(e){}
+                try { localStorage.removeItem('factora_user_remember'); } catch(e){}
+                try { localStorage.removeItem('userToken'); } catch(e){}
+                try { localStorage.removeItem('userData'); } catch(e){}
+                try { sessionStorage.removeItem('factora_user'); } catch(e){}
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 100);
+            }
+        }
+    </script>
+    <script src="{% static 'js/auth.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'js/header-user.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'js/notifications.js' %}?v={% now 'U' %}"></script>
+    <script src="{% static 'js/Movimiento.js' %}?v={% now 'U' %}"></script>
+
+</body>
+</html>
