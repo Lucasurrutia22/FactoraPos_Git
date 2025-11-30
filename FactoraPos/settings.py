@@ -87,17 +87,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.oracle',
         'NAME': 'localhost:1521/XEPDB1',
         'USER': 'FACTORA_POS',
-        'PASSWORD': 'factorapass',  # Cambia esto por tu contraseña real
+        'PASSWORD': 'factorapass',
     }
 }
-
-# Alternativa: usar SQLite para desarrollo local
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
 
 
 # Password validation

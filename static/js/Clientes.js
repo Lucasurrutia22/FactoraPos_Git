@@ -1,4 +1,4 @@
-// Clientes (Customers) Module
+// Clientes (Customers) Module - Conectado a Oracle
 (function() {
     'use strict';
 
@@ -6,18 +6,41 @@
 
     // Initialize on DOM ready
     document.addEventListener('DOMContentLoaded', function() {
-        loadCustomers();
+        loadCustomersFromAPI();
     });
 
-    // Load customers
-    function loadCustomers() {
-        const stored = localStorage.getItem('customers');
-        customers = stored ? JSON.parse(stored) : [];
-        renderCustomersTable();
+    // Load customers from Oracle API
+    async function loadCustomersFromAPI() {
+        try {
+            const response = await fetch('/ventas/api/clientes/');
+            const result = await response.json();
+            if (result.success) {
+                customers = result.data.map(c => ({
+                    id: c.id_cliente,
+                    name: c.nombre || '',
+                    email: c.email || c.correo || '',
+                    phone: c.telefono || '',
+                    rut: c.rut || '',
+                    address: c.direccion || '',
+                    city: '',
+                    registrationDate: c.fecha_registro ? new Date(c.fecha_registro).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+                }));
+                renderCustomersTable();
+                console.log('Clientes cargados desde Oracle:', customers.length);
+            } else {
+                console.error('Error API:', result.error);
+                customers = [];
+                renderCustomersTable();
+            }
+        } catch (error) {
+            console.error('Error cargando clientes:', error);
+            customers = [];
+            renderCustomersTable();
+        }
     }
 
     // Handle customer form submission
-    window.handleCustomerSubmit = function(e) {
+    window.handleCustomerSubmit = async function(e) {
         e.preventDefault();
         
         const name = document.getElementById('customerName').value;
@@ -32,26 +55,31 @@
             return;
         }
 
-        const customer = {
-            id: Date.now(),
-            name: name,
-            email: email,
-            phone: phone,
-            rut: rut,
-            address: address,
-            city: city,
-            registrationDate: new Date().toISOString().split('T')[0],
-            totalSpent: 0,
-            totalPurchases: 0
-        };
-
-        customers.push(customer);
-        localStorage.setItem('customers', JSON.stringify(customers));
-
-        // Reset form
-        document.getElementById('customerForm').reset();
-        renderCustomersTable();
-        alert('Cliente creado exitosamente');
+        try {
+            const response = await fetch('/ventas/api/clientes/create/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombre: name,
+                    correo: email,
+                    telefono: phone,
+                    rut: rut,
+                    direccion: address
+                })
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                document.getElementById('customerForm').reset();
+                await loadCustomersFromAPI();
+                alert('Cliente creado exitosamente en Oracle');
+            } else {
+                alert('Error: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Error creando cliente:', error);
+            alert('Error de conexión con el servidor');
+        }
     };
 
     // Render customers table
@@ -72,8 +100,10 @@
                 <td>${customer.city || '-'}</td>
                 <td>${customer.registrationDate}</td>
                 <td>
-                    <button class="btn-secondary" style="padding: 4px 8px; font-size: 12px; margin-right: 5px;" onclick="window.editCustomer(${index})">Editar</button>
-                    <button class="btn-secondary" style="padding: 4px 8px; font-size: 12px;" onclick="window.deleteCustomer(${index})">Eliminar</button>
+                    <div class="action-buttons">
+                        <button class="btn-action edit" onclick="window.editCustomer(${index})" title="Editar">✏️</button>
+                        <button class="btn-action delete" onclick="window.deleteCustomer(${index})" title="Eliminar">🗑️</button>
+                    </div>
                 </td>
             </tr>
         `).join('');
@@ -89,13 +119,12 @@
         document.getElementById('customerAddress').value = customer.address || '';
         document.getElementById('customerCity').value = customer.city || '';
         
-        // Store current editing index
-        document.getElementById('customerForm').dataset.editingIndex = index;
+        // Store current editing customer ID
+        document.getElementById('customerForm').dataset.editingId = customer.id;
         
-        const oldSubmit = document.getElementById('customerForm').onsubmit;
-        document.getElementById('customerForm').onsubmit = function(e) {
+        document.getElementById('customerForm').onsubmit = async function(e) {
             e.preventDefault();
-            const editIndex = parseInt(this.dataset.editingIndex);
+            const editId = this.dataset.editingId;
             const name = document.getElementById('customerName').value;
             const email = document.getElementById('customerEmail').value;
             const phone = document.getElementById('customerPhone').value;
@@ -103,44 +132,63 @@
             const address = document.getElementById('customerAddress').value;
             const city = document.getElementById('customerCity').value;
 
-            customers[editIndex] = {
-                ...customers[editIndex],
-                name: name,
-                email: email,
-                phone: phone,
-                rut: rut,
-                address: address,
-                city: city
-            };
-
-            localStorage.setItem('customers', JSON.stringify(customers));
-            document.getElementById('customerForm').reset();
-            delete this.dataset.editingIndex;
-            this.onsubmit = oldSubmit;
-            renderCustomersTable();
-            alert('Cliente actualizado');
+            try {
+                const response = await fetch(`/ventas/api/clientes/${editId}/update/`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nombre: name,
+                        correo: email,
+                        telefono: phone,
+                        rut: rut,
+                        direccion: address
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    document.getElementById('customerForm').reset();
+                    delete this.dataset.editingId;
+                    this.onsubmit = window.handleCustomerSubmit;
+                    await loadCustomersFromAPI();
+                    alert('Cliente actualizado en Oracle');
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error actualizando cliente:', error);
+                alert('Error de conexión con el servidor');
+            }
         };
     };
 
     // Delete customer
-    window.deleteCustomer = function(index) {
+    window.deleteCustomer = async function(index) {
+        const customer = customers[index];
         if (confirm('¿Estás seguro de eliminar este cliente?')) {
-            customers.splice(index, 1);
-            localStorage.setItem('customers', JSON.stringify(customers));
-            renderCustomersTable();
+            try {
+                const response = await fetch(`/ventas/api/clientes/${customer.id}/delete/`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    await loadCustomersFromAPI();
+                    alert('Cliente eliminado de Oracle');
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error eliminando cliente:', error);
+                alert('Error de conexión con el servidor');
+            }
         }
     };
 
     // Listen for updates
-    window.addEventListener('storage', function(e) {
-        if (e.key === 'customers') {
-            loadCustomers();
-        }
-    });
-
     document.addEventListener('visibilitychange', function() {
         if (!document.hidden) {
-            loadCustomers();
+            loadCustomersFromAPI();
         }
     });
 })();

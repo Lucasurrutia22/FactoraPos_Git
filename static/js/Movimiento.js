@@ -1,96 +1,209 @@
-// Movimientos (Transaction Log) Module
+// Log de Inventario - Control de Movimientos de Stock
 (function() {
     'use strict';
 
-    let movements = [];
+    let stockMovements = [];
     let allMovements = [];
+
+    // Tipos de movimiento de inventario
+    const MOVEMENT_TYPES = {
+        ENTRADA: { label: 'Entrada', icon: '📥', color: 'active' },
+        SALIDA: { label: 'Salida', icon: '📤', color: 'danger' },
+        AJUSTE_POSITIVO: { label: 'Ajuste (+)', icon: '➕', color: 'medium' },
+        AJUSTE_NEGATIVO: { label: 'Ajuste (-)', icon: '➖', color: 'warning' },
+        DEVOLUCION: { label: 'Devolución', icon: '🔄', color: 'info' },
+        TRASPASO: { label: 'Traspaso', icon: '🔀', color: 'primary' }
+    };
 
     // Initialize on DOM ready
     document.addEventListener('DOMContentLoaded', function() {
         loadMovements();
-        generateMovementsFromStoredData();
+        loadProductsForSelect();
+        renderMovementsTable();
+        updateSummaryCards();
     });
 
-    // Load movements log
+    // Load movements from localStorage
     function loadMovements() {
-        const stored = localStorage.getItem('movements');
-        allMovements = stored ? JSON.parse(stored) : [];
-        movements = [...allMovements];
-        renderMovementsTable();
+        const stored = localStorage.getItem('stockMovements');
+        allMovements = stored ? JSON.parse(stored) : generateSampleMovements();
+        stockMovements = [...allMovements];
+        
+        if (!stored) {
+            localStorage.setItem('stockMovements', JSON.stringify(allMovements));
+        }
     }
 
-    // Generate movements from existing data
-    function generateMovementsFromStoredData() {
-        // Log sales
-        const sales = JSON.parse(localStorage.getItem('sales') || '[]');
-        sales.forEach(sale => {
-            if (!allMovements.find(m => m.referenceId === sale.id)) {
-                allMovements.push({
-                    date: sale.date,
-                    time: '00:00',
-                    type: 'Venta',
-                    referenceId: sale.id,
-                    description: sale.items.map(i => i.name).join(', '),
-                    quantity: sale.items.reduce((sum, i) => sum + i.quantity, 0),
-                    value: sale.total,
-                    user: 'Sistema'
-                });
+    // Generate sample movements for demo
+    function generateSampleMovements() {
+        const today = new Date();
+        const samples = [
+            {
+                id: 'SM001',
+                date: formatDate(new Date(today - 86400000 * 2)),
+                time: '09:15',
+                type: 'ENTRADA',
+                productId: 1,
+                productName: 'Laptop HP ProBook',
+                quantity: 10,
+                stockBefore: 15,
+                stockAfter: 25,
+                reason: 'Compra a proveedor TechDistributor',
+                user: 'Admin',
+                reference: 'OC-2024-001'
+            },
+            {
+                id: 'SM002',
+                date: formatDate(new Date(today - 86400000)),
+                time: '14:30',
+                type: 'SALIDA',
+                productId: 2,
+                productName: 'Mouse Logitech MX',
+                quantity: 5,
+                stockBefore: 50,
+                stockAfter: 45,
+                reason: 'Venta a cliente',
+                user: 'Vendedor1',
+                reference: 'VTA-2024-125'
+            },
+            {
+                id: 'SM003',
+                date: formatDate(today),
+                time: '10:00',
+                type: 'AJUSTE_NEGATIVO',
+                productId: 3,
+                productName: 'Teclado Mecánico RGB',
+                quantity: 2,
+                stockBefore: 30,
+                stockAfter: 28,
+                reason: 'Producto dañado en almacén',
+                user: 'Admin',
+                reference: 'AJ-2024-015'
+            },
+            {
+                id: 'SM004',
+                date: formatDate(today),
+                time: '11:45',
+                type: 'DEVOLUCION',
+                productId: 2,
+                productName: 'Mouse Logitech MX',
+                quantity: 1,
+                stockBefore: 45,
+                stockAfter: 46,
+                reason: 'Cliente devolvió producto defectuoso',
+                user: 'Vendedor1',
+                reference: 'DEV-2024-008'
             }
-        });
+        ];
+        return samples;
+    }
 
-        // Log purchases
-        const purchases = JSON.parse(localStorage.getItem('purchases') || '[]');
-        purchases.forEach(purchase => {
-            if (!allMovements.find(m => m.referenceId === purchase.id)) {
-                allMovements.push({
-                    date: purchase.date,
-                    time: '00:00',
-                    type: 'Compra',
-                    referenceId: purchase.id,
-                    description: purchase.productName + ' (de ' + purchase.supplierName + ')',
-                    quantity: purchase.quantity,
-                    value: purchase.totalCost,
-                    user: 'Sistema'
-                });
-            }
-        });
+    function formatDate(date) {
+        return date.toISOString().split('T')[0];
+    }
 
-        // Sort by date descending
-        allMovements.sort((a, b) => {
-            const dateA = new Date(a.date + ' ' + a.time);
-            const dateB = new Date(b.date + ' ' + b.time);
-            return dateB - dateA;
-        });
+    // Load products for dropdown
+    function loadProductsForSelect() {
+        const select = document.getElementById('mv_product');
+        if (!select) return;
 
-        localStorage.setItem('movements', JSON.stringify(allMovements));
-        movements = [...allMovements];
-        renderMovementsTable();
+        // Try to load from API first, fallback to localStorage
+        fetch('/inventario/api/productos/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.productos && data.productos.length > 0) {
+                    populateProductSelect(select, data.productos.map(p => ({
+                        id: p.ID || p.id,
+                        name: p.NOMBRE || p.nombre || p.name
+                    })));
+                } else {
+                    loadProductsFromLocalStorage(select);
+                }
+            })
+            .catch(() => {
+                loadProductsFromLocalStorage(select);
+            });
+    }
+
+    function loadProductsFromLocalStorage(select) {
+        const products = JSON.parse(localStorage.getItem('products') || '[]');
+        populateProductSelect(select, products.map(p => ({ id: p.id, name: p.name })));
+    }
+
+    function populateProductSelect(select, products) {
+        select.innerHTML = '<option value="">Seleccionar producto...</option>';
+        products.forEach(p => {
+            select.innerHTML += `<option value="${p.id}" data-name="${p.name}">${p.name}</option>`;
+        });
     }
 
     // Render movements table
     function renderMovementsTable() {
         const tbody = document.getElementById('movementsTableBody');
-        if (movements.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #64748b;">No hay movimientos registrados</td></tr>';
+        if (!tbody) return;
+
+        if (stockMovements.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #64748b; padding: 40px;">📦 No hay movimientos de inventario registrados</td></tr>';
             return;
         }
 
-        tbody.innerHTML = movements.slice(0, 100).map(movement => `
+        tbody.innerHTML = stockMovements.map(mov => {
+            const typeInfo = MOVEMENT_TYPES[mov.type] || { label: mov.type, icon: '📋', color: 'default' };
+            const isPositive = ['ENTRADA', 'AJUSTE_POSITIVO', 'DEVOLUCION'].includes(mov.type);
+            
+            return `
             <tr>
-                <td>${movement.date}</td>
-                <td>${movement.time}</td>
+                <td><strong>${mov.id}</strong></td>
+                <td>${mov.date}<br><small style="color:#64748b;">${mov.time}</small></td>
                 <td>
-                    <span class="badge-status ${movement.type === 'Venta' ? 'active' : movement.type === 'Compra' ? 'medium' : 'warning'}">
-                        ${movement.type}
+                    <span class="badge-status ${typeInfo.color}">
+                        ${typeInfo.icon} ${typeInfo.label}
                     </span>
                 </td>
-                <td><strong>${movement.referenceId}</strong></td>
-                <td>${movement.description}</td>
-                <td>${movement.quantity}</td>
-                <td>$${movement.value.toLocaleString()}</td>
-                <td>${movement.user}</td>
+                <td>${mov.productName}</td>
+                <td style="text-align: center;">
+                    <span style="color: ${isPositive ? '#10b981' : '#ef4444'}; font-weight: 600;">
+                        ${isPositive ? '+' : '-'}${mov.quantity}
+                    </span>
+                </td>
+                <td style="text-align: center;">${mov.stockBefore} → <strong>${mov.stockAfter}</strong></td>
+                <td>${mov.reason || '-'}</td>
+                <td>${mov.user}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-action btn-view" onclick="viewMovementDetails('${mov.id}')" title="Ver Detalles">
+                            👁️
+                        </button>
+                    </div>
+                </td>
             </tr>
-        `).join('');
+        `}).join('');
+    }
+
+    // Update summary cards
+    function updateSummaryCards() {
+        const today = formatDate(new Date());
+        const todayMovements = allMovements.filter(m => m.date === today);
+        
+        const entries = todayMovements.filter(m => ['ENTRADA', 'AJUSTE_POSITIVO', 'DEVOLUCION'].includes(m.type));
+        const exits = todayMovements.filter(m => ['SALIDA', 'AJUSTE_NEGATIVO'].includes(m.type));
+        
+        const totalEntries = entries.reduce((sum, m) => sum + m.quantity, 0);
+        const totalExits = exits.reduce((sum, m) => sum + m.quantity, 0);
+
+        const entriesEl = document.getElementById('todayEntries');
+        const exitsEl = document.getElementById('todayExits');
+        const totalEl = document.getElementById('totalMovements');
+        const balanceEl = document.getElementById('stockBalance');
+
+        if (entriesEl) entriesEl.textContent = totalEntries;
+        if (exitsEl) exitsEl.textContent = totalExits;
+        if (totalEl) totalEl.textContent = todayMovements.length;
+        if (balanceEl) {
+            const balance = totalEntries - totalExits;
+            balanceEl.textContent = (balance >= 0 ? '+' : '') + balance;
+            balanceEl.style.color = balance >= 0 ? '#10b981' : '#ef4444';
+        }
     }
 
     // Apply filters
@@ -98,11 +211,16 @@
         const typeFilter = document.getElementById('filterType').value;
         const fromDate = document.getElementById('filterFromDate').value;
         const toDate = document.getElementById('filterToDate').value;
+        const searchText = document.getElementById('searchProduct')?.value?.toLowerCase() || '';
 
-        movements = allMovements.filter(m => {
+        stockMovements = allMovements.filter(m => {
             const typeMatch = !typeFilter || m.type === typeFilter;
             const dateMatch = (!fromDate || m.date >= fromDate) && (!toDate || m.date <= toDate);
-            return typeMatch && dateMatch;
+            const searchMatch = !searchText || 
+                m.productName.toLowerCase().includes(searchText) ||
+                m.id.toLowerCase().includes(searchText) ||
+                (m.reason && m.reason.toLowerCase().includes(searchText));
+            return typeMatch && dateMatch && searchMatch;
         });
 
         renderMovementsTable();
@@ -113,130 +231,136 @@
         document.getElementById('filterType').value = '';
         document.getElementById('filterFromDate').value = '';
         document.getElementById('filterToDate').value = '';
-        movements = [...allMovements];
+        const searchEl = document.getElementById('searchProduct');
+        if (searchEl) searchEl.value = '';
+        
+        stockMovements = [...allMovements];
         renderMovementsTable();
     };
 
-    // Export movements to CSV
-    window.exportMovements = function() {
-        let csv = 'Fecha,Hora,Tipo,ID Referencia,Descripción,Cantidad,Valor,Usuario\n';
+    // Open add movement modal
+    window.openAddMovementModal = function() {
+        const modal = document.getElementById('addMovementModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            // Set today's date and current time
+            const now = new Date();
+            document.getElementById('mv_date').value = formatDate(now);
+            document.getElementById('mv_time').value = now.toTimeString().slice(0, 5);
+        }
+    };
+
+    // Close modal
+    window.closeAddMovementModal = function() {
+        const modal = document.getElementById('addMovementModal');
+        if (modal) modal.style.display = 'none';
+        document.getElementById('addMovementForm')?.reset();
+    };
+
+    // Submit new movement
+    window.submitAddMovement = function() {
+        const date = document.getElementById('mv_date').value;
+        const time = document.getElementById('mv_time').value;
+        const type = document.getElementById('mv_type').value;
+        const productSelect = document.getElementById('mv_product');
+        const productId = productSelect.value;
+        const productName = productSelect.options[productSelect.selectedIndex]?.dataset?.name || '';
+        const quantity = parseInt(document.getElementById('mv_quantity').value) || 0;
+        const reason = document.getElementById('mv_reason').value;
+        const reference = document.getElementById('mv_reference').value || '';
+
+        if (!date || !time || !type || !productId || quantity <= 0) {
+            alert('Por favor complete todos los campos requeridos');
+            return;
+        }
+
+        // Get current stock (simulated)
+        const currentStock = Math.floor(Math.random() * 50) + 10;
+        const isPositive = ['ENTRADA', 'AJUSTE_POSITIVO', 'DEVOLUCION'].includes(type);
+        const newStock = isPositive ? currentStock + quantity : currentStock - quantity;
+
+        const newMovement = {
+            id: 'SM' + Date.now().toString().slice(-6),
+            date: date,
+            time: time,
+            type: type,
+            productId: parseInt(productId),
+            productName: productName,
+            quantity: quantity,
+            stockBefore: currentStock,
+            stockAfter: Math.max(0, newStock),
+            reason: reason,
+            user: localStorage.getItem('currentUser') || 'Admin',
+            reference: reference
+        };
+
+        allMovements.unshift(newMovement);
+        localStorage.setItem('stockMovements', JSON.stringify(allMovements));
         
-        movements.forEach(movement => {
-            csv += `"${movement.date}","${movement.time}","${movement.type}","${movement.referenceId}","${movement.description}","${movement.quantity}","${movement.value}","${movement.user}"\n`;
+        stockMovements = [...allMovements];
+        renderMovementsTable();
+        updateSummaryCards();
+
+        // Notification
+        if (typeof window.addNotification === 'function') {
+            window.addNotification({
+                title: `${MOVEMENT_TYPES[type]?.icon || '📦'} ${MOVEMENT_TYPES[type]?.label || type}`,
+                message: `${productName}: ${isPositive ? '+' : '-'}${quantity} unidades`,
+                type: 'Inventario'
+            });
+        }
+
+        closeAddMovementModal();
+        alert('✅ Movimiento registrado exitosamente');
+    };
+
+    // View movement details
+    window.viewMovementDetails = function(id) {
+        const mov = allMovements.find(m => m.id === id);
+        if (!mov) return;
+
+        const typeInfo = MOVEMENT_TYPES[mov.type] || { label: mov.type, icon: '📋' };
+        const isPositive = ['ENTRADA', 'AJUSTE_POSITIVO', 'DEVOLUCION'].includes(mov.type);
+
+        alert(`
+📋 DETALLE DE MOVIMIENTO
+
+ID: ${mov.id}
+Fecha: ${mov.date} ${mov.time}
+Tipo: ${typeInfo.icon} ${typeInfo.label}
+
+Producto: ${mov.productName}
+Cantidad: ${isPositive ? '+' : '-'}${mov.quantity}
+Stock: ${mov.stockBefore} → ${mov.stockAfter}
+
+Motivo: ${mov.reason || 'No especificado'}
+Referencia: ${mov.reference || 'N/A'}
+Usuario: ${mov.user}
+        `.trim());
+    };
+
+    // Export to CSV
+    window.exportMovements = function() {
+        let csv = 'ID,Fecha,Hora,Tipo,Producto,Cantidad,Stock Antes,Stock Después,Motivo,Usuario,Referencia\n';
+        
+        stockMovements.forEach(mov => {
+            const typeInfo = MOVEMENT_TYPES[mov.type] || { label: mov.type };
+            csv += `"${mov.id}","${mov.date}","${mov.time}","${typeInfo.label}","${mov.productName}","${mov.quantity}","${mov.stockBefore}","${mov.stockAfter}","${mov.reason || ''}","${mov.user}","${mov.reference || ''}"\n`;
         });
 
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = 'movimientos_' + new Date().toISOString().split('T')[0] + '.csv';
+        link.download = 'log_inventario_' + formatDate(new Date()) + '.csv';
         link.click();
     };
 
-    // Modal & Add Movement handlers
-    window.openAddMovementModal = function() {
-        const modal = document.getElementById('addMovementModal');
-        if (modal) {
-            modal.style.display = 'flex';
-            // Set today's date
-            const today = new Date().toISOString().split('T')[0];
-            const dateInput = document.getElementById('mv_date');
-            if (dateInput && !dateInput.value) {
-                dateInput.value = today;
-            }
-        }
-    };
-
-    window.closeAddMovementModal = function() {
-        const modal = document.getElementById('addMovementModal');
-        if (modal) modal.style.display = 'none';
-        const form = document.getElementById('addMovementForm');
-        if (form) form.reset();
-    };
-
-    window.submitAddMovement = function() {
-        const date = document.getElementById('mv_date').value;
-        const time = document.getElementById('mv_time').value;
-        const type = document.getElementById('mv_type').value;
-        const ref = document.getElementById('mv_ref').value || '';
-        const desc = document.getElementById('mv_desc').value || '';
-        const qty = parseFloat(document.getElementById('mv_qty').value) || 0;
-        const value = parseFloat(document.getElementById('mv_value').value) || 0;
-        const user = document.getElementById('mv_user').value || 'Sistema';
-
-        if (!date || !time || !type || !desc) {
-            alert('Complete Fecha, Hora, Tipo y Descripción.');
-            return;
-        }
-
-        const datetime = date + ' ' + time;
-        const id = 'm_' + Date.now();
-
-        const newMovement = {
-            id: id,
-            date: date,
-            time: time,
-            datetime: datetime,
-            type: type,
-            referenceId: ref,
-            description: desc,
-            quantity: qty,
-            value: value,
-            user: user
-        };
-
-        // ensure allMovements is current
-        allMovements = allMovements || [];
-        allMovements.unshift(newMovement);
-        // persist
-        localStorage.setItem('movements', JSON.stringify(allMovements));
-
-        // update view
-        movements = [...allMovements];
-        renderMovementsTable();
-        
-        // Create an in-app notification for the new movement (if notifications module loaded)
-        try {
-            if (typeof window.addNotification === 'function') {
-                window.addNotification({
-                    title: `Nuevo Movimiento: ${newMovement.type}`,
-                    message: `${newMovement.description} (Ref: ${newMovement.referenceId || '-'})`,
-                    type: newMovement.type || 'Movimiento'
-                });
-            }
-        } catch (err) {
-            console.warn('No se pudo enviar notificación:', err);
-        }
-        
-        window.closeAddMovementModal();
-        alert('Movimiento agregado exitosamente');
-    };
-
-    // Listen for updates - regenerate movements when data changes
-    window.addEventListener('storage', function(e) {
-        if (e.key === 'sales' || e.key === 'purchases' || e.key === 'movements') {
-            loadMovements();
-            generateMovementsFromStoredData();
-        }
-    });
-
-    window.addEventListener('productsUpdated', function(e) {
-        generateMovementsFromStoredData();
-    });
-
-    document.addEventListener('visibilitychange', function() {
-        if (!document.hidden) {
-            loadMovements();
-            generateMovementsFromStoredData();
-        }
-    });
 })();
 
 // Global dropdown functions
 window.toggleProfileMenu = function() {
     const dropdown = document.getElementById('userDropdown');
-    if (dropdown) {
-        dropdown.classList.toggle('show');
-    }
+    if (dropdown) dropdown.classList.toggle('show');
 };
 
 document.addEventListener('click', function(e) {
@@ -246,21 +370,3 @@ document.addEventListener('click', function(e) {
         dropdown.classList.remove('show');
     }
 });
-
-// Modal functions
-function openUserProfile(event) {
-    event.preventDefault();
-    const modal = document.getElementById('userProfileModal');
-    if (modal) modal.style.display = 'flex';
-}
-
-function openSettings(event) {
-    event.preventDefault();
-    const modal = document.getElementById('settingsModal');
-    if (modal) modal.style.display = 'flex';
-}
-
-function closeModalById(id) {
-    const modal = document.getElementById(id);
-    if (modal) modal.style.display = 'none';
-}

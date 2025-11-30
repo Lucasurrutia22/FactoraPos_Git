@@ -449,7 +449,8 @@ textarea {
     color: #d97706;
 }
 
-.badge-status.low {
+.badge-status.low,
+.badge-status.danger {
     background: rgba(239, 68, 68, 0.1);
     color: #dc2626;
 }
@@ -457,6 +458,47 @@ textarea {
 .badge-status.warning {
     background: rgba(96, 165, 250, 0.1);
     color: #0284c7;
+}
+
+.badge-status.info {
+    background: rgba(139, 92, 246, 0.1);
+    color: #7c3aed;
+}
+
+.badge-status.primary {
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.btn-action {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.btn-view {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+.btn-view:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
 }
 
 @media (max-width: 1024px) {

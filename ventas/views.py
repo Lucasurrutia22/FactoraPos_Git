@@ -36,19 +36,35 @@ def api_clientes_create(request):
         data = json.loads(request.body)
         cursor = connection.cursor()
         
+        # Obtener columnas disponibles
+        cursor.execute("SELECT * FROM CLIENTES WHERE ROWNUM = 0")
+        available_cols = [col[0].upper() for col in cursor.description]
+        
         cursor.execute("SELECT NVL(MAX(ID_CLIENTE), 0) + 1 FROM CLIENTES")
         next_id = cursor.fetchone()[0]
         
-        cursor.execute("""
-            INSERT INTO CLIENTES (ID_CLIENTE, NOMBRE, CORREO, TELEFONO, DIRECCION)
-            VALUES (%s, %s, %s, %s, %s)
-        """, [
-            next_id,
-            data.get('nombre'),
-            data.get('correo', ''),
-            data.get('telefono', ''),
-            data.get('direccion', '')
-        ])
+        # Construir INSERT dinámicamente según las columnas disponibles
+        columns = ['ID_CLIENTE']
+        values = [next_id]
+        
+        col_mapping = {
+            'NOMBRE': data.get('nombre', ''),
+            'RUT': data.get('rut', ''),
+            'EMAIL': data.get('correo', data.get('email', '')),
+            'CORREO': data.get('correo', data.get('email', '')),
+            'TELEFONO': data.get('telefono', ''),
+            'DIRECCION': data.get('direccion', ''),
+        }
+        
+        for col, val in col_mapping.items():
+            if col in available_cols:
+                columns.append(col)
+                values.append(val)
+        
+        placeholders = ', '.join(['%s'] * len(values))
+        sql = f"INSERT INTO CLIENTES ({', '.join(columns)}) VALUES ({placeholders})"
+        
+        cursor.execute(sql, values)
         connection.commit()
         cursor.close()
         
@@ -66,18 +82,34 @@ def api_clientes_update(request, id):
         data = json.loads(request.body)
         cursor = connection.cursor()
         
-        cursor.execute("""
-            UPDATE CLIENTES 
-            SET NOMBRE = %s, CORREO = %s, TELEFONO = %s, DIRECCION = %s
-            WHERE ID_CLIENTE = %s
-        """, [
-            data.get('nombre'),
-            data.get('correo', ''),
-            data.get('telefono', ''),
-            data.get('direccion', ''),
-            id
-        ])
-        connection.commit()
+        # Obtener columnas disponibles
+        cursor.execute("SELECT * FROM CLIENTES WHERE ROWNUM = 0")
+        available_cols = [col[0].upper() for col in cursor.description]
+        
+        # Construir UPDATE dinámicamente
+        updates = []
+        values = []
+        
+        col_mapping = {
+            'NOMBRE': data.get('nombre'),
+            'RUT': data.get('rut'),
+            'EMAIL': data.get('correo', data.get('email')),
+            'CORREO': data.get('correo', data.get('email')),
+            'TELEFONO': data.get('telefono'),
+            'DIRECCION': data.get('direccion'),
+        }
+        
+        for col, val in col_mapping.items():
+            if col in available_cols and val is not None:
+                updates.append(f"{col} = %s")
+                values.append(val)
+        
+        if updates:
+            values.append(id)
+            sql = f"UPDATE CLIENTES SET {', '.join(updates)} WHERE ID_CLIENTE = %s"
+            cursor.execute(sql, values)
+            connection.commit()
+        
         cursor.close()
         
         return JsonResponse({'success': True, 'message': 'Cliente actualizado'})

@@ -107,7 +107,7 @@
             </a>
 
             <a href="{% url 'movimientos' %}" class="menu-item">
-                <i>📋</i> Movimientos
+                <i>📦</i> Mov. Inventario
             </a>
 
             <div class="menu-section">Configuración</div>
@@ -176,6 +176,53 @@
         <div class="page-title">Punto de Venta</div>
         <div class="page-subtitle">Selecciona tu local y administra ventas</div>
 
+        <!-- Formulario para agregar nuevo punto -->
+        <div class="card" style="margin-top:20px; margin-bottom:20px;">
+            <div class="card-header">
+                <h3 class="card-title">➕ Agregar Nuevo Punto de Venta</h3>
+            </div>
+            <div class="card-body">
+                <form id="storeForm" onsubmit="handleStoreSubmit(event)">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Nombre del Local</label>
+                            <input type="text" id="storeName" placeholder="Ej: Local Mall Plaza" required
+                                   style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Dirección Completa</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="storeAddress" placeholder="Ej: Av. Principal 123, Santiago, Chile" required
+                                       style="flex: 1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                                <button type="button" onclick="geocodeAddress()" 
+                                        style="padding: 10px 15px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; white-space: nowrap;">
+                                    🔍 Buscar en Mapa
+                                </button>
+                            </div>
+                            <div id="geocodeStatus" style="margin-top: 5px; font-size: 12px;"></div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Teléfono</label>
+                            <input type="text" id="storePhone" placeholder="Ej: +56 9 1234 5678"
+                                   style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Horario</label>
+                            <input type="text" id="storeHours" placeholder="Ej: 09:00 - 21:00"
+                                   style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <button type="submit" id="submitStoreBtn" style="padding: 12px 24px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                            ➕ Agregar Punto de Venta
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Mapa -->
         <div class="card" style="margin-top:20px; margin-bottom:20px;">
             <div class="card-header">
@@ -189,28 +236,11 @@
                 </div>
 
                 <!-- Lista de locales -->
-                <div style="margin-top:20px;
+                <div id="storeCardsContainer" style="margin-top:20px;
                             display:grid;
                             grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
                             gap:15px;">
-
-                    <!-- Locales estáticos (igual que tu original) -->
-                    <div class="store-card" onclick="selectStore(1)">
-                        <div class="store-header active">
-                            <span class="store-number">1</span>
-                            <span class="store-badge">Activo</span>
-                        </div>
-                        <div class="store-name">Local Centro</div>
-                        <div class="store-address">📍 Calle Principal 123, Centro</div>
-                        <div class="store-info">
-                            <span>☎️ +1 234 567 8900</span><br>
-                            <span>⏰ 09:00 - 21:00</span>
-                        </div>
-                    </div>
-
-                    <!-- (Puedes seguir copiando los otros locales, igual que tu HTML original)
-                         Para no hacer demasiado largo el bloque, mantengo solo uno,
-                         pero TODOS son compatibles sin cambios. -->
+                    <!-- Los locales se cargan dinámicamente desde JavaScript -->
                 </div>
 
                 <!-- Información local seleccionado -->

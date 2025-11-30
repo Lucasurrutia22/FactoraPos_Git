@@ -8,21 +8,50 @@
 
     // Initialize on DOM ready
     document.addEventListener('DOMContentLoaded', function() {
-        loadData();
-        populateSelects();
+        loadDataFromAPI();
     });
 
-    // Load all data
-    function loadData() {
-        const customersStored = localStorage.getItem('customers');
-        customers = customersStored ? JSON.parse(customersStored) : [];
+    // Load all data from Oracle APIs
+    async function loadDataFromAPI() {
+        try {
+            // Cargar clientes desde Oracle
+            const customersRes = await fetch('/ventas/api/clientes/');
+            const customersData = await customersRes.json();
+            if (customersData.success) {
+                customers = customersData.data.map(c => ({
+                    id: c.id_cliente,
+                    name: c.nombre
+                }));
+            }
+        } catch (error) {
+            console.error('Error cargando clientes:', error);
+            // Fallback a localStorage
+            const customersStored = localStorage.getItem('customers');
+            customers = customersStored ? JSON.parse(customersStored) : [];
+        }
 
-        const productsStored = localStorage.getItem('products');
-        products = productsStored ? JSON.parse(productsStored) : [];
+        try {
+            // Cargar productos desde Oracle
+            const productsRes = await fetch('/inventario/api/productos/');
+            const productsData = await productsRes.json();
+            if (productsData.success) {
+                products = productsData.data.map(p => ({
+                    id: p.id_producto,
+                    name: p.nombre
+                }));
+            }
+        } catch (error) {
+            console.error('Error cargando productos:', error);
+            // Fallback a localStorage
+            const productsStored = localStorage.getItem('products');
+            products = productsStored ? JSON.parse(productsStored) : [];
+        }
 
+        // Cargar RMAs desde localStorage (por ahora)
         const rmaStored = localStorage.getItem('rma');
         rmaRequests = rmaStored ? JSON.parse(rmaStored) : [];
 
+        populateSelects();
         renderRmaTable();
     }
 
@@ -32,14 +61,17 @@
         const productSelect = document.getElementById('rmaProduct');
 
         if (customerSelect) {
-            customerSelect.innerHTML = '<option value="">-- Seleccionar --</option>' + 
+            customerSelect.innerHTML = '<option value="">-- Seleccionar Cliente --</option>' + 
                 customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
         }
 
         if (productSelect) {
-            productSelect.innerHTML = '<option value="">-- Seleccionar --</option>' + 
-                products.map(p => `<option value="${p.id}">${p.name || p.nombre}</option>`).join('');
+            productSelect.innerHTML = '<option value="">-- Seleccionar Producto --</option>' + 
+                products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
         }
+        
+        console.log('Clientes cargados:', customers.length);
+        console.log('Productos cargados:', products.length);
     }
 
     // Handle RMA form submission
@@ -65,7 +97,7 @@
             customerId: customerId,
             customerName: customer?.name || 'Desconocido',
             productId: productId,
-            productName: product?.name || product?.nombre || 'Desconocido',
+            productName: product?.name || 'Desconocido',
             type: rmaType,
             purchaseDate: purchaseDate,
             description: description,
@@ -99,12 +131,14 @@
                 <td>${rma.requestDate}</td>
                 <td><span class="badge-status ${rma.status === 'Resuelto' ? 'active' : rma.status === 'En Proceso' ? 'medium' : 'low'}">${rma.status}</span></td>
                 <td>
-                    <button class="btn-primary" style="padding: 4px 8px; font-size: 12px; margin-right: 5px;" 
-                        onclick="window.updateRmaStatus(${index})" 
-                        ${rma.status === 'Resuelto' ? 'disabled' : ''}>
-                        Actualizar
-                    </button>
-                    <button class="btn-secondary" style="padding: 4px 8px; font-size: 12px;" onclick="window.deleteRma(${index})">Eliminar</button>
+                    <div class="action-buttons">
+                        <button class="btn-action btn-edit" onclick="window.updateRmaStatus(${index})" title="Actualizar Estado" ${rma.status === 'Resuelto' ? 'disabled' : ''}>
+                            ✏️
+                        </button>
+                        <button class="btn-action btn-delete" onclick="window.deleteRma(${index})" title="Eliminar">
+                            🗑️
+                        </button>
+                    </div>
                 </td>
             </tr>
         `).join('');

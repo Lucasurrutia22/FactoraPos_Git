@@ -107,8 +107,10 @@
                 <td>${supplier.rut || '-'}</td>
                 <td>${supplier.registrationDate}</td>
                 <td>
-                    <button class="btn-secondary" style="padding: 4px 8px; font-size: 12px; margin-right: 5px;" onclick="window.editSupplier(${index})">Editar</button>
-                    <button class="btn-secondary" style="padding: 4px 8px; font-size: 12px;" onclick="window.deleteSupplier(${index})">Eliminar</button>
+                    <div class="action-buttons">
+                        <button class="btn-action edit" onclick="window.editSupplier(${index})" title="Editar">✏️</button>
+                        <button class="btn-action delete" onclick="window.deleteSupplier(${index})" title="Eliminar">🗑️</button>
+                    </div>
                 </td>
             </tr>
         `).join('');
